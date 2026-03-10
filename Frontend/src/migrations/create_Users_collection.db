@@ -1,0 +1,9 @@
+db.createCollection("users")
+
+db.users.insertOne({
+  name: "Admin",
+  email: "admin@marsascan.com",
+  password: "hashed_password",
+  role: "admin",
+  created_at: new Date()
+})

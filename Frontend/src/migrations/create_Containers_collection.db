@@ -1,0 +1,8 @@
+db.createCollection("containers")
+
+db.containers.insertOne({
+  container_number: "MSCU1234567",
+  size: "40ft",
+  type: "standard",
+  created_at: new Date()
+})

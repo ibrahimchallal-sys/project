@@ -1,0 +1,8 @@
+db.createCollection("terminals")
+
+db.terminals.insertOne({
+  name: "Terminal A",
+  location: "North Gate",
+  description: "Main container entry",
+  created_at: new Date()
+})

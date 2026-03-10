@@ -1,0 +1,9 @@
+db.createCollection("alerts")
+
+db.alerts.insertOne({
+  container_number: "MSCU1234567",
+  alert_type: "duplicate_entry",
+  message: "Container detected twice within 5 minutes",
+  created_at: new Date(),
+  status: "open"
+})

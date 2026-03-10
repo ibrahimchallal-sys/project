@@ -1,0 +1,23 @@
+description: Ultralytics best100 model trained on dataset/data.yaml
+author: Ultralytics
+date: '2026-03-09T23:09:12.646487'
+version: 8.4.19
+license: AGPL-3.0 License (https://ultralytics.com/license)
+docs: https://docs.ultralytics.com
+stride: 32
+task: detect
+batch: 1
+imgsz:
+- 640
+- 640
+names:
+  0: container_number_h
+  1: container_number_v
+args:
+  batch: 1
+  fraction: 1.0
+  half: false
+  int8: false
+  nms: false
+channels: 3
+end2end: false
