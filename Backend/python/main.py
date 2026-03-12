@@ -9,7 +9,41 @@ model = YOLO('../models/yolo26n.pt')
 
 reader = easyocr.Reader(['en'])
 
-node_url = "http://localhost:82/extract-code"
+BASE_URL = "http://localhost:82"
+node_url = f"{BASE_URL}/extract-code"
+
+session = requests.Session()
+
+# Login
+try:
+    login_resp = session.post(f"{BASE_URL}/login", json={"email": "admin@marsa.ma", "password": "admin123"})
+    if login_resp.status_code != 200 or not login_resp.json().get("success"):
+        print("❌ Impossible de se connecter au serveur")
+        exit()
+except Exception as e:
+    print(f"❌ Connexion au serveur impossible: {e}")
+    exit()
+
+# Ask for camera IP
+camera_ip = input("📷 Entrez l'adresse IP de la caméra (ex: 192.168.1.10): ").strip()
+if not camera_ip:
+    print("❌ Adresse IP requise")
+    exit()
+
+# Find the camera in DB by IP
+try:
+    resp = session.get(f"{BASE_URL}/cameras")
+    cameras_list = resp.json() if resp.status_code == 200 else []
+    match = next((c for c in cameras_list if c.get("ip_address") == camera_ip), None)
+    if match:
+        camera_db_id = str(match["_id"])
+        print(f"✅ Caméra trouvée: {match.get('name', camera_ip)} ({camera_ip})")
+    else:
+        print(f"⚠️  Aucune caméra avec l'IP {camera_ip} trouvée dans la base. Vérifiez la configuration.")
+        exit()
+except Exception as e:
+    print(f"❌ Connexion au serveur impossible: {e}")
+    exit()
 
 cap = cv2.VideoCapture(0)
 if not cap.isOpened():
@@ -109,14 +143,14 @@ while True:
                     "container_code": container_code,
                     "iso_size_type": iso_size_type if iso_size_type else "Non Scanné",
                     "confidence": round(conf * 100, 2),
-                    "camera_id": "1" # You can change this to 2, 3, etc. for different webcams
+                    "camera_id": camera_db_id
                 }
                 try:
                     # Encode the full frame as JPEG and send as multipart
                     _, img_encoded = cv2.imencode('.jpg', frame)
                     img_bytes = img_encoded.tobytes()
                     files = {'screenshot': ('screenshot.jpg', img_bytes, 'image/jpeg')}
-                    r = requests.post(node_url, data=data, files=files)
+                    r = session.post(node_url, data=data, files=files)
                     if r.status_code == 200:
                         print(f"✅ Sent {container_code} to server")
                     else:
