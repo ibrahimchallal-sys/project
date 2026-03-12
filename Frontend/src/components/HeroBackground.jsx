@@ -5,6 +5,7 @@ import { Ship, Scan, Clock, ShieldCheck, ArrowRight } from 'lucide-react';
 
 export default function HeroBackground() {
   const iconColor = "#1f93ff";
+  
 
   return (
     <div className="hero-container">

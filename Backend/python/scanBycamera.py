@@ -1,16 +1,14 @@
 from ultralytics import YOLO
 
-# 1. Charger le modèle
 model = YOLO('yolov8n.pt')
 
 
 print("Début de la détection filtrée")
 
-# 3. Lancer la prédiction
 
 results = model.predict(
     source=0, 
-    classes=[0],          
+    classes=[65],          
     project=r'C:\Users\user\Documents\MARSA MAROC\Projet\python', 
     name='cars',         
     exist_ok=True,             

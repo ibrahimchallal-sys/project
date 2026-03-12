@@ -97,7 +97,7 @@ export default function About() {
         {/* Footer section centered at the bottom */}
         <footer className="about-footer">
           <h2 className="footer-title">Prêt à moderniser vos opérations portuaires ?</h2>
-          <a href="/login" className="footer-btn">
+          <a href="/services" className="footer-btn">
             Découvrir nos services
             <ArrowRight size={20} />
           </a>

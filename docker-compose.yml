@@ -1,0 +1,31 @@
+services:
+
+  frontend:
+    build: ./Frontend
+    image: marsa-frontend:latest
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  backend:
+    build: ./Backend/server
+    image: marsa-backend:latest
+    ports:
+      - "82:82"
+    env_file:
+      - .env
+    environment:
+      - PORT=82
+    restart: unless-stopped
+
+  python:
+    build: ./Backend/python
+    image: marsa-python:latest
+    ports:
+      - "5000:5000"
+    restart: unless-stopped
+    # Uncomment to allow webcam access from the host:
+    # devices:
+    #   - /dev/video0:/dev/video0

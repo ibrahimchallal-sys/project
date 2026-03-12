@@ -12,8 +12,10 @@
   "dependencies": {
     "@fontsource/montserrat": "^5.2.8",
     "@fontsource/roboto": "^5.2.10",
+    "chart.js": "^4.5.1",
     "lucide-react": "^0.577.0",
     "react": "^19.2.0",
+    "react-chartjs-2": "^5.3.1",
     "react-dom": "^19.2.0",
     "react-router-dom": "^7.13.1",
     "styled-components": "^6.3.11"
