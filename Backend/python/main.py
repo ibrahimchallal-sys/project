@@ -18,16 +18,16 @@ session = requests.Session()
 try:
     login_resp = session.post(f"{BASE_URL}/login", json={"email": "admin@marsa.ma", "password": "admin123"})
     if login_resp.status_code != 200 or not login_resp.json().get("success"):
-        print("❌ Impossible de se connecter au serveur")
+        print(" Impossible de se connecter au serveur")
         exit()
 except Exception as e:
-    print(f"❌ Connexion au serveur impossible: {e}")
+    print(f" Connexion au serveur impossible: {e}")
     exit()
 
 # Ask for camera IP
 camera_ip = input("📷 Entrez l'adresse IP de la caméra (ex: 192.168.1.10): ").strip()
 if not camera_ip:
-    print("❌ Adresse IP requise")
+    print("Adresse IP requise")
     exit()
 
 # Find the camera in DB by IP
@@ -37,20 +37,21 @@ try:
     match = next((c for c in cameras_list if c.get("ip_address") == camera_ip), None)
     if match:
         camera_db_id = str(match["_id"])
-        print(f"✅ Caméra trouvée: {match.get('name', camera_ip)} ({camera_ip})")
+        print(f" Caméra trouvée: {match.get('name', camera_ip)} ({camera_ip})")
     else:
-        print(f"⚠️  Aucune caméra avec l'IP {camera_ip} trouvée dans la base. Vérifiez la configuration.")
+        print(f"  Aucune caméra avec l'IP {camera_ip} trouvée dans la base. Vérifiez la configuration.")
         exit()
+        
 except Exception as e:
-    print(f"❌ Connexion au serveur impossible: {e}")
+    print(f" Connexion au serveur impossible: {e}")
     exit()
 
 cap = cv2.VideoCapture(0)
 if not cap.isOpened():
-    print("❌ Cannot open camera")
+    print(" Cannot open camera")
     exit()
 
-print("✅ Camera started... Press Q to quit")
+print(" Camera started... Press Q to quit")
 
 detected_containers = {}
 
