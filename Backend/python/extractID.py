@@ -7,7 +7,7 @@ import re
 model = YOLO('../models/yolo26n.pt')
 reader = easyocr.Reader(['en'])
 
-file_path = '../test/original4.jpg'
+file_path = '../test/test3.jpg'
 node_url = "http://localhost:82/extract-code"
 
 results = model.predict(

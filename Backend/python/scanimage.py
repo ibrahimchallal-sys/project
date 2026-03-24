@@ -1,9 +1,8 @@
 from ultralytics import YOLO
 
-# 1. Charger le modèle
 model = YOLO('../models/yolo26n.pt')
 
-file = '../test/test1.jpg'
+file = '../test/test3.jpg'
 print("Début de la détection filtrée")
 
 
@@ -15,9 +14,7 @@ results = model.predict(
     exist_ok=True,             
     conf=0.30,   
     show=True,
-    save=True  
-
-                      
+    save=True                        
 )
 print("done ")
 

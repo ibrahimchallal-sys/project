@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, RefreshCw, Box, Search, Package, Video, FileText, FileSpreadsheet, Download, BarChart2, Users, Plus, Trash2, Camera, X, CheckSquare, Square, Crown, Pencil, UserPlus, Activity, Layers, TrendingUp } from 'lucide-react';
+import { LogOut, RefreshCw, Box, Search, Package, Video, FileText, FileSpreadsheet, Download, BarChart2, Users, Plus, Trash2, Camera, X, CheckSquare, Square, Crown, Pencil, UserPlus, Activity, Layers, TrendingUp, AlertTriangle, Clock, Smartphone } from 'lucide-react';
 import styled, { keyframes } from 'styled-components';
 import {
   Chart as ChartJS,
@@ -32,6 +32,7 @@ export default function Dashboard() {
   const [showCreateTeam, setShowCreateTeam] = useState(false);
   const [newTeamName, setNewTeamName] = useState('');
   const [newTeamLeader, setNewTeamLeader] = useState('');
+  const [newLeaderPhone, setNewLeaderPhone] = useState('');
   const [createTeamError, setCreateTeamError] = useState('');
   const [assigningTeam, setAssigningTeam] = useState(null);
   const [selectedCameras, setSelectedCameras] = useState([]);
@@ -46,8 +47,32 @@ export default function Dashboard() {
   const [editContainerData, setEditContainerData] = useState({});
   const [managingMembersTeam, setManagingMembersTeam] = useState(null);
   const [addMemberInput, setAddMemberInput] = useState('');
+  const [stops, setStops] = useState([]);
+  const [stopsLoading, setStopsLoading] = useState(false);
+  const [showCreateStop, setShowCreateStop] = useState(false);
+  const [stopForm, setStopForm] = useState({ reason: '', team_id: '', team_name: '', start_time: '', confirmation_time: '', status: 'active' });
+  const [stopFormError, setStopFormError] = useState('');
+  const [editingStop, setEditingStop] = useState(null);
+  const [whatsappStatus, setWhatsappStatus] = useState('disconnected');
+  const [whatsappQr, setWhatsappQr] = useState(null);
   const chartRef = useRef(null);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (activeSection !== 'whatsapp') return;
+    let cancelled = false;
+    const poll = async () => {
+      try {
+        const r = await fetch('http://localhost:3001/api/whatsapp/status');
+        if (!r.ok) return;
+        const d = await r.json();
+        if (!cancelled) { setWhatsappStatus(d.status); setWhatsappQr(d.qr || null); }
+      } catch {}
+    };
+    poll();
+    const id = setInterval(poll, 3000);
+    return () => { cancelled = true; clearInterval(id); };
+  }, [activeSection]);
 
   const fetchContainers = async () => {
     setLoading(true);
@@ -109,6 +134,96 @@ export default function Dashboard() {
     }
   };
 
+  const fetchStops = async () => {
+    setStopsLoading(true);
+    try {
+      const res = await fetch('http://localhost:82/stops', { credentials: 'include' });
+      if (res.status === 401) { navigate('/login'); return; }
+      if (res.ok) setStops(await res.json());
+    } catch (err) {
+      console.error('Failed to load stops', err);
+    } finally {
+      setStopsLoading(false);
+    }
+  };
+
+  const handleCreateStop = async () => {
+    setStopFormError('');
+    if (!stopForm.reason.trim() || !stopForm.start_time) {
+      setStopFormError('La raison et la date de début sont requises.');
+      return;
+    }
+    try {
+      const team = teams.find(t => t._id === stopForm.team_id);
+      const body = {
+        reason: stopForm.reason.trim(),
+        team_id: stopForm.team_id || null,
+        team_name: team ? team.name : stopForm.team_name,
+        start_time: stopForm.start_time,
+        confirmation_time: stopForm.confirmation_time || null,
+        status: stopForm.status
+      };
+      const res = await fetch('http://localhost:82/stops', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(body)
+      });
+      if (!res.ok) { const d = await res.json(); setStopFormError(d.error || 'Erreur.'); return; }
+      setShowCreateStop(false);
+      setStopForm({ reason: '', team_id: '', team_name: '', start_time: '', confirmation_time: '', status: 'active' });
+      fetchStops();
+    } catch (err) { setStopFormError('Erreur serveur.'); }
+  };
+
+  const handleUpdateStop = async () => {
+    setStopFormError('');
+    if (!editingStop.reason.trim() || !editingStop.start_time) {
+      setStopFormError('La raison et la date de début sont requises.');
+      return;
+    }
+    try {
+      const team = teams.find(t => t._id === editingStop.team_id);
+      const body = {
+        reason: editingStop.reason,
+        team_id: editingStop.team_id || null,
+        team_name: team ? team.name : editingStop.team_name,
+        start_time: editingStop.start_time,
+        confirmation_time: editingStop.confirmation_time || null,
+        status: editingStop.status
+      };
+      await fetch(`http://localhost:82/stops/${editingStop._id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(body)
+      });
+      setEditingStop(null);
+      fetchStops();
+    } catch (err) { console.error(err); }
+  };
+
+  const handleDeleteStop = async (id) => {
+    if (!window.confirm('Supprimer cet arrêt ?')) return;
+    try {
+      await fetch(`http://localhost:82/stops/${id}`, { method: 'DELETE', credentials: 'include' });
+      fetchStops();
+    } catch (err) { console.error(err); }
+  };
+
+  const computeDelay = (start, end) => {
+    if (!start) return '—';
+    const from = new Date(start);
+    const to = end ? new Date(end) : new Date();
+    const diffMs = to - from;
+    if (diffMs < 0) return '—';
+    const totalMinutes = Math.floor(diffMs / 60000);
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    if (hours > 0) return `${hours}h ${minutes}min`;
+    return `${minutes} min`;
+  };
+
   const handleAddCamera = async () => {
     setCameraError('');
     if (!newCameraName.trim()) { setCameraError('Le nom de la caméra est requis.'); return; }
@@ -146,7 +261,7 @@ export default function Dashboard() {
 
   const handleCreateTeam = async () => {
     setCreateTeamError('');
-    if (!newTeamName.trim() || !newTeamLeader.trim()) {
+    if (!newTeamName.trim() || !newTeamLeader.trim() || !newLeaderPhone.trim()) {
       setCreateTeamError('Veuillez remplir tous les champs.');
       return;
     }
@@ -155,13 +270,14 @@ export default function Dashboard() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ name: newTeamName.trim(), leader_name: newTeamLeader.trim(), members: newTeamMembers })
+        body: JSON.stringify({ name: newTeamName.trim(), leader_name: newTeamLeader.trim(), leader_phone: newLeaderPhone.trim(), members: newTeamMembers })
       });
       const data = await res.json();
       if (!res.ok) { setCreateTeamError(data.error); return; }
       setShowCreateTeam(false);
       setNewTeamName('');
       setNewTeamLeader('');
+      setNewLeaderPhone('');
       setNewTeamMembers([]);
       setNewMemberInput('');
       fetchTeams();
@@ -259,10 +375,12 @@ export default function Dashboard() {
     fetchMonthlyStats();
     fetchCameras();
     fetchTeams();
+    fetchStops();
   }, [navigate]);
 
   useEffect(() => {
     if (activeSection === 'teams') { fetchTeams(); fetchCameras(); }
+    if (activeSection === 'stops') { fetchStops(); fetchTeams(); }
   }, [activeSection]);
 
   const handleDownloadChart = () => {
@@ -432,6 +550,26 @@ export default function Dashboard() {
               <NavBadge>{teams.length}</NavBadge>
             )}
           </NavItem>
+          <NavItem
+            className={activeSection === 'stops' ? 'active' : ''}
+            onClick={() => setActiveSection('stops')}
+          >
+            <AlertTriangle size={18} />
+            Arrêts
+            {stops.filter(s => s.status === 'active').length > 0 && activeSection !== 'stops' && (
+              <NavBadge $danger>{stops.filter(s => s.status === 'active').length}</NavBadge>
+            )}
+          </NavItem>
+          <NavItem
+            className={activeSection === 'whatsapp' ? 'active' : ''}
+            onClick={() => setActiveSection('whatsapp')}
+          >
+            <Smartphone size={18} />
+            WhatsApp
+            {whatsappStatus === 'qr' && activeSection !== 'whatsapp' && (
+              <NavBadge $danger>!</NavBadge>
+            )}
+          </NavItem>
           {activeSection === 'containers' && (
             <>
               <SidebarDivider>Exporter</SidebarDivider>
@@ -461,11 +599,15 @@ export default function Dashboard() {
             <h1>
               {activeSection === 'stats' ? 'Statistiques Mensuelles'
                 : activeSection === 'teams' ? 'Gestion des Équipes'
+                : activeSection === 'stops' ? 'Arrêts de Travail'
+                : activeSection === 'whatsapp' ? 'WhatsApp'
                 : 'Tableau de Bord'}
             </h1>
             <HeaderSubtitle>
               {activeSection === 'stats' ? 'Visualisation des détections sur 30 jours'
                 : activeSection === 'teams' ? `${teams.length} équipe(s) · ${camerasList.length} caméra(s)`
+                : activeSection === 'stops' ? `${stops.length} arrêt(s) · ${stops.filter(s => s.status === 'active').length} en cours`
+                : activeSection === 'whatsapp' ? 'Connexion WhatsApp Web'
                 : `${filteredContainers.length} conteneur(s) trouvé(s)`}
             </HeaderSubtitle>
           </HeaderLeft>
@@ -474,6 +616,12 @@ export default function Dashboard() {
               <AddTeamBtn onClick={() => { setShowCreateTeam(true); setCreateTeamError(''); }}>
                 <Plus size={16} />
                 Nouvelle Équipe
+              </AddTeamBtn>
+            )}
+            {activeSection === 'stops' && (
+              <AddTeamBtn $warning onClick={() => { setShowCreateStop(true); setStopFormError(''); setStopForm({ reason: '', team_id: '', team_name: '', start_time: new Date().toISOString().slice(0, 16), confirmation_time: '', status: 'active' }); }}>
+                <Plus size={16} />
+                Nouvel Arrêt
               </AddTeamBtn>
             )}
             {activeSection === 'containers' && (
@@ -596,6 +744,16 @@ export default function Dashboard() {
                           placeholder="Nom complet du chef"
                           value={newTeamLeader}
                           onChange={e => setNewTeamLeader(e.target.value)}
+                          onKeyDown={e => e.key === 'Enter' && handleCreateTeam()}
+                        />
+                      </ModalField>
+                      <ModalField>
+                        <label>Numéro WhatsApp du chef</label>
+                        <input
+                          type="tel"
+                          placeholder="Ex: 0612345678"
+                          value={newLeaderPhone}
+                          onChange={e => setNewLeaderPhone(e.target.value)}
                           onKeyDown={e => e.key === 'Enter' && handleCreateTeam()}
                         />
                       </ModalField>
@@ -727,6 +885,204 @@ export default function Dashboard() {
                 </ModalOverlay>
               )}
             </>
+          ) : activeSection === 'stops' ? (
+            <>
+              {stopsLoading ? (
+                <EmptyTeams>
+                  <RefreshCw size={32} className="spin" color="#334155" />
+                  <p>Chargement des arrêts...</p>
+                </EmptyTeams>
+              ) : (
+                <TableContainer>
+                  <TableHeader>
+                    <TableTitle>
+                      <AlertTriangle size={15} color="#f59e0b" />
+                      Liste des arrêts
+                    </TableTitle>
+                    <ResultCount>{stops.length} arrêt(s)</ResultCount>
+                  </TableHeader>
+                  <Table>
+                    <thead>
+                      <tr>
+                        <th>Équipe arrêtée</th>
+                        <th>Raison du stop</th>
+                        <th>Heure de début</th>
+                        <th>Délai</th>
+                        <th>Heure de confirmation</th>
+                        <th>Statut</th>
+                        <th></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {stops.length === 0 ? (
+                        <tr>
+                          <td colSpan="7" className="text-center">
+                            <EmptyTableState>
+                              <EmptyIcon><AlertTriangle size={32} /></EmptyIcon>
+                              <EmptyTitle>Aucun arrêt enregistré</EmptyTitle>
+                              <p>Cliquez sur <strong>Nouvel Arrêt</strong> pour en ajouter un.</p>
+                            </EmptyTableState>
+                          </td>
+                        </tr>
+                      ) : stops.map((stop, idx) => (
+                        <tr key={idx}>
+                          <td>
+                            {stop.team_name ? (
+                              <StopTeamCell>
+                                <Users size={13} color="#60a5fa" />
+                                {stop.team_name}
+                              </StopTeamCell>
+                            ) : <span style={{ color: '#475569', fontStyle: 'italic' }}>Non assignée</span>}
+                          </td>
+                          <td><strong>{stop.reason}</strong></td>
+                          <td style={{ color: '#94a3b8', fontSize: '13px' }}>
+                            {stop.start_time ? new Date(stop.start_time).toLocaleString('fr-FR') : '—'}
+                          </td>
+                          <td>
+                            <DelayBadge $active={stop.status === 'active'}>
+                              <Clock size={12} />
+                              {computeDelay(stop.start_time, stop.confirmation_time || (stop.status === 'resolved' ? stop.updated_at : null))}
+                            </DelayBadge>
+                          </td>
+                          <td style={{ color: '#94a3b8', fontSize: '13px' }}>
+                            {stop.confirmation_time ? new Date(stop.confirmation_time).toLocaleString('fr-FR') : <span style={{ color: '#475569', fontStyle: 'italic' }}>Non confirmée</span>}
+                          </td>
+                          <td>
+                            {stop.status === 'active' ? (
+                              <StopStatusBadge $active>En cours</StopStatusBadge>
+                            ) : (
+                              <StopStatusBadge>Résolu</StopStatusBadge>
+                            )}
+                          </td>
+                          <td>
+                            <RowActions>
+                              <TeamIconBtn title="Modifier" onClick={() => { setEditingStop({ ...stop, start_time: stop.start_time ? new Date(stop.start_time).toISOString().slice(0, 16) : '', confirmation_time: stop.confirmation_time ? new Date(stop.confirmation_time).toISOString().slice(0, 16) : '' }); setStopFormError(''); }}>
+                                <Pencil size={13} />
+                              </TeamIconBtn>
+                              <TeamIconBtn $danger title="Supprimer" onClick={() => handleDeleteStop(stop._id)}>
+                                <Trash2 size={13} />
+                              </TeamIconBtn>
+                            </RowActions>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </Table>
+                </TableContainer>
+              )}
+
+              {/* Create Stop Modal */}
+              {showCreateStop && (
+                <ModalOverlay onClick={() => setShowCreateStop(false)}>
+                  <ModalBox onClick={e => e.stopPropagation()}>
+                    <ModalHeader>
+                      <h3>Nouvel Arrêt</h3>
+                      <ModalCloseBtn onClick={() => setShowCreateStop(false)}><X size={18} /></ModalCloseBtn>
+                    </ModalHeader>
+                    <ModalBody>
+                      <ModalField>
+                        <label>Raison du stop</label>
+                        <input type="text" placeholder="Ex: Panne de grue" autoFocus value={stopForm.reason} onChange={e => setStopForm(p => ({ ...p, reason: e.target.value }))} />
+                      </ModalField>
+                      <ModalField>
+                        <label>Équipe arrêtée</label>
+                        <select value={stopForm.team_id} onChange={e => setStopForm(p => ({ ...p, team_id: e.target.value }))}>
+                          <option value="">— Aucune équipe —</option>
+                          {teams.map(t => <option key={t._id} value={t._id}>{t.name}</option>)}
+                        </select>
+                      </ModalField>
+                      <ModalField>
+                        <label>Heure de début</label>
+                        <input type="datetime-local" value={stopForm.start_time} onChange={e => setStopForm(p => ({ ...p, start_time: e.target.value }))} />
+                      </ModalField>
+                      <ModalField>
+                        <label>Heure de confirmation de la raison</label>
+                        <input type="datetime-local" value={stopForm.confirmation_time} onChange={e => setStopForm(p => ({ ...p, confirmation_time: e.target.value }))} />
+                      </ModalField>
+                      <ModalField>
+                        <label>Statut</label>
+                        <select value={stopForm.status} onChange={e => setStopForm(p => ({ ...p, status: e.target.value }))}>
+                          <option value="active">En cours</option>
+                          <option value="resolved">Résolu</option>
+                        </select>
+                      </ModalField>
+                      {stopFormError && <ModalError>{stopFormError}</ModalError>}
+                    </ModalBody>
+                    <ModalFooter>
+                      <ModalCancelBtn onClick={() => setShowCreateStop(false)}>Annuler</ModalCancelBtn>
+                      <ModalConfirmBtn onClick={handleCreateStop}>Enregistrer</ModalConfirmBtn>
+                    </ModalFooter>
+                  </ModalBox>
+                </ModalOverlay>
+              )}
+
+              {/* Edit Stop Modal */}
+              {editingStop && (
+                <ModalOverlay onClick={() => setEditingStop(null)}>
+                  <ModalBox onClick={e => e.stopPropagation()}>
+                    <ModalHeader>
+                      <h3>Modifier l'arrêt</h3>
+                      <ModalCloseBtn onClick={() => setEditingStop(null)}><X size={18} /></ModalCloseBtn>
+                    </ModalHeader>
+                    <ModalBody>
+                      <ModalField>
+                        <label>Raison du stop</label>
+                        <input type="text" value={editingStop.reason} onChange={e => setEditingStop(p => ({ ...p, reason: e.target.value }))} />
+                      </ModalField>
+                      <ModalField>
+                        <label>Équipe arrêtée</label>
+                        <select value={editingStop.team_id || ''} onChange={e => setEditingStop(p => ({ ...p, team_id: e.target.value }))}>
+                          <option value="">— Aucune équipe —</option>
+                          {teams.map(t => <option key={t._id} value={t._id}>{t.name}</option>)}
+                        </select>
+                      </ModalField>
+                      <ModalField>
+                        <label>Heure de début</label>
+                        <input type="datetime-local" value={editingStop.start_time} onChange={e => setEditingStop(p => ({ ...p, start_time: e.target.value }))} />
+                      </ModalField>
+                      <ModalField>
+                        <label>Heure de confirmation de la raison</label>
+                        <input type="datetime-local" value={editingStop.confirmation_time || ''} onChange={e => setEditingStop(p => ({ ...p, confirmation_time: e.target.value }))} />
+                      </ModalField>
+                      <ModalField>
+                        <label>Statut</label>
+                        <select value={editingStop.status} onChange={e => setEditingStop(p => ({ ...p, status: e.target.value }))}>
+                          <option value="active">En cours</option>
+                          <option value="resolved">Résolu</option>
+                        </select>
+                      </ModalField>
+                      {stopFormError && <ModalError>{stopFormError}</ModalError>}
+                    </ModalBody>
+                    <ModalFooter>
+                      <ModalCancelBtn onClick={() => setEditingStop(null)}>Annuler</ModalCancelBtn>
+                      <ModalConfirmBtn onClick={handleUpdateStop}>Enregistrer</ModalConfirmBtn>
+                    </ModalFooter>
+                  </ModalBox>
+                </ModalOverlay>
+              )}
+            </>
+          ) : activeSection === 'whatsapp' ? (
+            <WaSection>
+              {whatsappStatus === 'ready' ? (
+                <WaConnected>
+                  <WaConnectedDot />
+                  <span>WhatsApp connecté</span>
+                </WaConnected>
+              ) : whatsappStatus === 'qr' && whatsappQr ? (
+                <>
+                  <WaInstruction>Scannez ce QR code avec votre téléphone pour connecter WhatsApp.</WaInstruction>
+                  <WaQrImg src={whatsappQr} alt="QR Code WhatsApp" />
+                  <WaHint>Ouvrez WhatsApp &gt; Appareils connectés &gt; Connecter un appareil</WaHint>
+                </>
+              ) : (
+                <WaWaiting>
+                  <RefreshCw size={24} className="spin" color="#3b82f6" />
+                  <span>
+                    {whatsappStatus === 'initializing' ? 'Initialisation en cours…' : 'En attente du QR code…'}
+                  </span>
+                </WaWaiting>
+              )}
+            </WaSection>
           ) : activeSection === 'stats' ? (
             <>
               <StatsSummaryRow>
@@ -1130,8 +1486,8 @@ const NavItem = styled.div`
 
 const NavBadge = styled.span`
   margin-left: auto;
-  background: rgba(59, 130, 246, 0.15);
-  color: #60a5fa;
+  background: ${({ $danger }) => $danger ? 'rgba(239, 68, 68, 0.15)' : 'rgba(59, 130, 246, 0.15)'};
+  color: ${({ $danger }) => $danger ? '#f87171' : '#60a5fa'};
   border-radius: 20px;
   font-size: 11px;
   font-weight: 700;
@@ -1806,15 +2162,15 @@ const AddTeamBtn = styled.button`
   align-items: center;
   gap: 7px;
   padding: 8px 16px;
-  background: rgba(59, 130, 246, 0.12);
-  color: #60a5fa;
-  border: 1px solid rgba(59, 130, 246, 0.3);
+  background: ${({ $warning }) => $warning ? 'rgba(245, 158, 11, 0.12)' : 'rgba(59, 130, 246, 0.12)'};
+  color: ${({ $warning }) => $warning ? '#fbbf24' : '#60a5fa'};
+  border: 1px solid ${({ $warning }) => $warning ? 'rgba(245, 158, 11, 0.3)' : 'rgba(59, 130, 246, 0.3)'};
   border-radius: 8px;
   cursor: pointer;
   font-size: 13px;
   font-weight: 600;
   transition: all 0.15s ease;
-  &:hover { background: rgba(59, 130, 246, 0.22); }
+  &:hover { background: ${({ $warning }) => $warning ? 'rgba(245, 158, 11, 0.22)' : 'rgba(59, 130, 246, 0.22)'}; }
 `;
 
 const TeamsGrid = styled.div`
@@ -2010,7 +2366,7 @@ const ModalField = styled.div`
     letter-spacing: 0.6px;
   }
 
-  input {
+  input, select {
     background: #0f172a;
     border: 1px solid #1e3a5f;
     border-radius: 8px;
@@ -2021,6 +2377,7 @@ const ModalField = styled.div`
     transition: border-color 0.15s;
     &:focus { border-color: #3b82f6; }
     &::placeholder { color: #334155; }
+    option { background: #1e293b; color: #f1f5f9; }
   }
 `;
 
@@ -2234,4 +2591,102 @@ const OwnedTag = styled.span`
   padding: 1px 6px;
   border-radius: 4px;
   margin-left: auto;
+`;
+
+/* ─── Stops section ──────────────────────────────────────────── */
+
+const StopTeamCell = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #cbd5e1;
+`;
+
+const DelayBadge = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 20px;
+  background: ${({ $active }) => $active ? 'rgba(239, 68, 68, 0.12)' : 'rgba(71, 85, 105, 0.25)'};
+  color: ${({ $active }) => $active ? '#f87171' : '#94a3b8'};
+  border: 1px solid ${({ $active }) => $active ? 'rgba(239, 68, 68, 0.25)' : 'transparent'};
+`;
+
+/* ─── WhatsApp Section ──────────────────────────────────────── */
+
+const WaSection = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  gap: 20px;
+`;
+
+const WaInstruction = styled.p`
+  color: #94a3b8;
+  font-size: 15px;
+  margin: 0;
+  text-align: center;
+`;
+
+const WaHint = styled.p`
+  color: #475569;
+  font-size: 13px;
+  margin: 0;
+  text-align: center;
+`;
+
+const WaQrImg = styled.img`
+  width: 260px;
+  height: 260px;
+  border-radius: 16px;
+  border: 3px solid #25D366;
+  background: #fff;
+  padding: 8px;
+`;
+
+const WaConnected = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 18px;
+  font-weight: 600;
+  color: #34d399;
+`;
+
+const WaConnectedDot = styled.div`
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #25D366;
+  box-shadow: 0 0 8px #25D366;
+`;
+
+const WaWaiting = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  color: #94a3b8;
+  font-size: 15px;
+  .spin { animation: ${spin} 1s linear infinite; }
+`;
+
+const StopStatusBadge = styled.span`
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 20px;
+  background: ${({ $active }) => $active ? 'rgba(239, 68, 68, 0.12)' : 'rgba(16, 185, 129, 0.12)'};
+  color: ${({ $active }) => $active ? '#f87171' : '#34d399'};
+  border: 1px solid ${({ $active }) => $active ? 'rgba(239,68,68,0.25)' : 'rgba(16,185,129,0.25)'};
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 `;

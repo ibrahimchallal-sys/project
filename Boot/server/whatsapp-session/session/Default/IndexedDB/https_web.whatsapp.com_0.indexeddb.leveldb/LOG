@@ -1,0 +1,14 @@
+2026/03/19-11:20:29.075 ec44 Creating DB C:\Users\user\Documents\MARSA MAROC\Projet\boot\server\whatsapp-session\session\Default\IndexedDB\https_web.whatsapp.com_0.indexeddb.leveldb since it was missing.
+2026/03/19-11:20:29.101 ec44 Reusing MANIFEST C:\Users\user\Documents\MARSA MAROC\Projet\boot\server\whatsapp-session\session\Default\IndexedDB\https_web.whatsapp.com_0.indexeddb.leveldb/MANIFEST-000001
+2026/03/19-11:21:40.356 cc64 Level-0 table #5: started
+2026/03/19-11:21:40.537 cc64 Level-0 table #5: 1017925 bytes OK
+2026/03/19-11:21:40.542 cc64 Delete type=0 #3
+2026/03/19-11:22:24.699 ec80 Level-0 table #7: started
+2026/03/19-11:22:24.816 ec80 Level-0 table #7: 1058923 bytes OK
+2026/03/19-11:22:24.825 ec80 Delete type=0 #4
+2026/03/19-11:22:24.896 ec44 Compacting 1@1 + 1@2 files
+2026/03/19-11:22:25.033 ec44 Generated table #8@1: 22082 keys, 870517 bytes
+2026/03/19-11:22:25.034 ec44 Compacted 1@1 + 1@2 files => 870517 bytes
+2026/03/19-11:22:25.037 ec44 compacted to: files[ 0 0 1 0 0 0 0 ]
+2026/03/19-11:22:25.038 ec44 Delete type=2 #5
+2026/03/19-11:22:25.038 ec44 Delete type=2 #7
