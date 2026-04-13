@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, RefreshCw, Box, Search, Package, Video, FileText, FileSpreadsheet, Download, BarChart2, Users, Plus, Trash2, Camera, X, CheckSquare, Square, Crown, Pencil, UserPlus, Activity, Layers, TrendingUp, AlertTriangle, Clock, Smartphone } from 'lucide-react';
+import { LogOut, RefreshCw, Box, Search, Package, Video, FileText, FileSpreadsheet, Download, BarChart2, Users, Plus, Trash2, Camera, X, CheckSquare, Square, Crown, Pencil, UserPlus, Activity, Layers, TrendingUp, AlertTriangle, Clock } from 'lucide-react';
 import styled, { keyframes } from 'styled-components';
 import {
   Chart as ChartJS,
@@ -53,26 +53,10 @@ export default function Dashboard() {
   const [stopForm, setStopForm] = useState({ reason: '', team_id: '', team_name: '', start_time: '', confirmation_time: '', status: 'active' });
   const [stopFormError, setStopFormError] = useState('');
   const [editingStop, setEditingStop] = useState(null);
-  const [whatsappStatus, setWhatsappStatus] = useState('disconnected');
-  const [whatsappQr, setWhatsappQr] = useState(null);
+  
   const chartRef = useRef(null);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    if (activeSection !== 'whatsapp') return;
-    let cancelled = false;
-    const poll = async () => {
-      try {
-        const r = await fetch('http://localhost:3001/api/whatsapp/status');
-        if (!r.ok) return;
-        const d = await r.json();
-        if (!cancelled) { setWhatsappStatus(d.status); setWhatsappQr(d.qr || null); }
-      } catch {}
-    };
-    poll();
-    const id = setInterval(poll, 3000);
-    return () => { cancelled = true; clearInterval(id); };
-  }, [activeSection]);
 
   const fetchContainers = async () => {
     setLoading(true);
@@ -560,16 +544,7 @@ export default function Dashboard() {
               <NavBadge $danger>{stops.filter(s => s.status === 'active').length}</NavBadge>
             )}
           </NavItem>
-          <NavItem
-            className={activeSection === 'whatsapp' ? 'active' : ''}
-            onClick={() => setActiveSection('whatsapp')}
-          >
-            <Smartphone size={18} />
-            WhatsApp
-            {whatsappStatus === 'qr' && activeSection !== 'whatsapp' && (
-              <NavBadge $danger>!</NavBadge>
-            )}
-          </NavItem>
+
           {activeSection === 'containers' && (
             <>
               <SidebarDivider>Exporter</SidebarDivider>
@@ -600,14 +575,14 @@ export default function Dashboard() {
               {activeSection === 'stats' ? 'Statistiques Mensuelles'
                 : activeSection === 'teams' ? 'Gestion des Équipes'
                 : activeSection === 'stops' ? 'Arrêts de Travail'
-                : activeSection === 'whatsapp' ? 'WhatsApp'
+
                 : 'Tableau de Bord'}
             </h1>
             <HeaderSubtitle>
               {activeSection === 'stats' ? 'Visualisation des détections sur 30 jours'
                 : activeSection === 'teams' ? `${teams.length} équipe(s) · ${camerasList.length} caméra(s)`
                 : activeSection === 'stops' ? `${stops.length} arrêt(s) · ${stops.filter(s => s.status === 'active').length} en cours`
-                : activeSection === 'whatsapp' ? 'Connexion WhatsApp Web'
+
                 : `${filteredContainers.length} conteneur(s) trouvé(s)`}
             </HeaderSubtitle>
           </HeaderLeft>
@@ -1061,28 +1036,6 @@ export default function Dashboard() {
                 </ModalOverlay>
               )}
             </>
-          ) : activeSection === 'whatsapp' ? (
-            <WaSection>
-              {whatsappStatus === 'ready' ? (
-                <WaConnected>
-                  <WaConnectedDot />
-                  <span>WhatsApp connecté</span>
-                </WaConnected>
-              ) : whatsappStatus === 'qr' && whatsappQr ? (
-                <>
-                  <WaInstruction>Scannez ce QR code avec votre téléphone pour connecter WhatsApp.</WaInstruction>
-                  <WaQrImg src={whatsappQr} alt="QR Code WhatsApp" />
-                  <WaHint>Ouvrez WhatsApp &gt; Appareils connectés &gt; Connecter un appareil</WaHint>
-                </>
-              ) : (
-                <WaWaiting>
-                  <RefreshCw size={24} className="spin" color="#3b82f6" />
-                  <span>
-                    {whatsappStatus === 'initializing' ? 'Initialisation en cours…' : 'En attente du QR code…'}
-                  </span>
-                </WaWaiting>
-              )}
-            </WaSection>
           ) : activeSection === 'stats' ? (
             <>
               <StatsSummaryRow>
@@ -1369,7 +1322,6 @@ export default function Dashboard() {
   );
 }
 
-/* ─── Animations ─────────────────────────────────────────────── */
 
 const fadeIn = keyframes`
   from { opacity: 0; transform: translateY(10px); }
@@ -1380,7 +1332,6 @@ const spin = keyframes`
   100% { transform: rotate(360deg); }
 `;
 
-/* ─── Layout ─────────────────────────────────────────────────── */
 
 const DashboardContainer = styled.div`
   display: flex;
@@ -2617,65 +2568,7 @@ const DelayBadge = styled.span`
   border: 1px solid ${({ $active }) => $active ? 'rgba(239, 68, 68, 0.25)' : 'transparent'};
 `;
 
-/* ─── WhatsApp Section ──────────────────────────────────────── */
 
-const WaSection = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 60px 20px;
-  gap: 20px;
-`;
-
-const WaInstruction = styled.p`
-  color: #94a3b8;
-  font-size: 15px;
-  margin: 0;
-  text-align: center;
-`;
-
-const WaHint = styled.p`
-  color: #475569;
-  font-size: 13px;
-  margin: 0;
-  text-align: center;
-`;
-
-const WaQrImg = styled.img`
-  width: 260px;
-  height: 260px;
-  border-radius: 16px;
-  border: 3px solid #25D366;
-  background: #fff;
-  padding: 8px;
-`;
-
-const WaConnected = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  font-size: 18px;
-  font-weight: 600;
-  color: #34d399;
-`;
-
-const WaConnectedDot = styled.div`
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: #25D366;
-  box-shadow: 0 0 8px #25D366;
-`;
-
-const WaWaiting = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  color: #94a3b8;
-  font-size: 15px;
-  .spin { animation: ${spin} 1s linear infinite; }
-`;
 
 const StopStatusBadge = styled.span`
   display: inline-flex;

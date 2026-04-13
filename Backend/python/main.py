@@ -24,13 +24,11 @@ except Exception as e:
     print(f" Connexion au serveur impossible: {e}")
     exit()
 
-# Ask for camera IP
-camera_ip = input("📷 Entrez l'adresse IP de la caméra (ex: 192.168.1.10): ").strip()
+camera_ip = input(" Entrez l'adresse IP de la caméra (ex: 192.168.1.10): ").strip()
 if not camera_ip:
     print("Adresse IP requise")
     exit()
 
-# Find the camera in DB by IP
 try:
     resp = session.get(f"{BASE_URL}/cameras")
     cameras_list = resp.json() if resp.status_code == 200 else []
@@ -155,9 +153,9 @@ while True:
                     if r.status_code == 200:
                         print(f"✅ Sent {container_code} to server")
                     else:
-                        print(f"❌ Server rejected {container_code}: {r.status_code} - {r.text}")
+                        print(f" Server rejected {container_code}: {r.status_code} - {r.text}")
                 except Exception as e:
-                    print("❌ Connection failed:", e)
+                    print(" Connection failed:", e)
 
             # Draw box and label on frame
             if container_code:

@@ -9,4 +9,4 @@ COPY . .
 
 EXPOSE 82
 
-CMD ["node", "Database.js"]
+CMD ["node", "main.js"]

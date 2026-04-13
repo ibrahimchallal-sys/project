@@ -1,28 +1,25 @@
 from ultralytics import YOLO
 
-model = YOLO('yolov8n.pt')
-
+model = YOLO('../models/yolov8n.pt')
 
 print("Début de la détection filtrée")
 
-
+# Option 1: Remove stream=True for simple webcam detection
 results = model.predict(
-    source=0, 
-    classes=[65],          
-    project=r'C:\Users\user\Documents\MARSA MAROC\Projet\python', 
-    name='cars',         
+    classes=[0],
+    source=0,           
+    project=r'C:\Users\user\Documents\MARSA MAROC\Projet\python',         
     exist_ok=True,             
-    conf=0.50,   
-    show=True,                      
+    conf=0.20,   
+    show=True,
+    # stream=True  # Remove this line
 )
 
-
-
 # Classe	Objet	Classe	Objet
-# 1	Personne (person)	41	Tasse (cup)
-# 2	Vélo (bicycle)	42	Fourchette (fork)
-# 3	Voiture (car)	43	Couteau (knife)
-# 4	Moto (motorcycle)	44	Cuillère (spoon)
+# 1	Personne (person)	
+# 2	Vélo (bicycle)	
+# 3	Voiture (car)	
+# 4	Moto (motorcycle)	
 # 5	Avion (airplane)	45	Bol (bowl)
 # 6	Bus (bus)	46	Banane (banana)
 # 7	Train (train)	47	Pomme (apple)
@@ -59,3 +56,6 @@ results = model.predict(
 # 38	Planche de surf (surfboard)	78	Sèche-cheveux (hair drier)
 # 39	Raquette de tennis (tennis racket)	79	Brosse à dents (toothbrush)
 # 40	Bouteille (bottle)
+#41	Tasse (cup)
+#42	Fourchette (fork)
+#43	Couteau (knife)

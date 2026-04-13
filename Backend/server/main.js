@@ -8,7 +8,6 @@ const { MongoClient, ObjectId } = require('mongodb');
 const multer = require('multer');
 const http = require('http');
 const bcrypt = require('bcryptjs');
-
 function callOllama(prompt) {
     return new Promise((resolve) => {
         const body = JSON.stringify({
@@ -340,7 +339,7 @@ app.get('/alerts/recent', async (req, res) => {
 });
 
 
-// ---------------- GENERATE REPORT (CSV or PDF via Ollama) ----------------
+// ---------------- GENERATE REPORT (CSV or PDF ) ----------------
 
 app.get('/generate-report', async (req, res) => {
     if (!req.session.user) {
@@ -461,8 +460,8 @@ app.get('/generate-report', async (req, res) => {
             });
             doc.moveDown(1);
 
-            // AI Summary
-            doc.fontSize(14).fillColor('#1f93ff').text('Analyse IA (Ollama)');
+            
+            doc.fontSize(14).fillColor('#1f93ff').text('Analyse');
             doc.moveDown(0.4);
             doc.fontSize(11).fillColor('#1e293b').text(aiSummary, { lineGap: 4 });
             doc.moveDown(1);
@@ -785,11 +784,10 @@ app.delete('/stops/:id', async (req, res) => {
 });
 
 
-// ---------------- START SERVER ----------------
 
 const PORT = process.env.PORT || 82;
 
 // Start Express server
 app.listen(PORT, () => {
-    console.log(`🚀 Server running on port ${PORT}`);
+    console.log(` Server running on port ${PORT}`);
 });
